@@ -94,6 +94,30 @@ class RoomHandler(object):
         return r
 
 
+    def send_join_msg(self, client_id):
+        """Send a message of type 'join' to all users connected to the room where client_id is connected."""
+        nick = self.client_info[client_id]['nick']
+        r_cwsconns = self.roomate_cwsconns(client_id)
+        msg = {"msgtype": "join", "username": nick, "payload": " joined the chat room."}
+        pmessage = json.dumps(msg)
+        for conn in r_cwsconns:
+            conn.write_message(pmessage)
+
+    @staticmethod
+    def send_nicks_msg(conns, nick_list):
+        """Send a message of type 'nick_list' (contains a list of nicknames) to all the specified connections."""
+        msg = {"msgtype": "nick_list", "payload": nick_list}
+        pmessage = json.dumps(msg)
+        for c in conns:
+            c.write_message(pmessage)
+
+    @staticmethod
+    def send_leave_msg(nick, rconns):
+        """Send a message of type 'leave', specifying the nickname that is leaving, to all the specified connections."""
+        msg = {"msgtype": "leave", "username": nick, "payload": " left the chat room."}
+        pmessage = json.dumps(msg)
+        for conn in rconns:
+            conn.write_message(pmessage)
 
 
 class MainHandler(tornado.web.RequestHandler):
