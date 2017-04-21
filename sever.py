@@ -137,10 +137,32 @@ class MainHandler(tornado.web.RequestHandler):
             self.render("templates/main.html")
 
 
+class ClientWSConnection(websocket.WebSocketHandler):
+
+    def initialize(self, room_handler):
+        """Store a reference to the "external" RoomHandler instance"""
+        self.__rh = room_handler
+
+    def open(self, client_id):
+        self.__clientID = client_id
+        self.__rh.add_client_wsconn(client_id, self)
+
+    def on_message(self, message):
+        msg = json.loads(message)
+        msg['username'] = self.__rh.client_info[self.__clientID]['nick']
+        pmessage = json.dumps(msg)
+        rconns = self.__rh.roomate_cwsconns(self.__clientID)
+        for conn in rconns:
+            conn.write_message(pmessage)
+
+    def on_close(self):
+        self.__rh.remove_client(self.__clientID)
+
 if __name__ == "__main__":
     rh = RoomHandler()
     app = tornado.web.Application([
-        (r"/", MainHandler, {'room_handler': rh})],
+        (r"/", MainHandler, {'room_handler': rh}),
+        (r"/ws/(.*)", ClientWSConnection, {'room_handler': rh})],
         static_path=os.path.join(os.path.dirname(__file__), "static")
     )
     app.listen(8888)
