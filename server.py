@@ -48,7 +48,7 @@ class RoomHandler(object):
                 user['wsconn'] = conn
                 break
         # send "join" and and "nick_list" messages
-        self.send_join_msg(client_id)
+        self.send_join_msg(client_id,cid_room)
         nick_list = self.nicks_in_room(cid_room)
         cwsconns = self.roomate_cwsconns(client_id)
         self.send_nicks_msg(cwsconns, nick_list)
@@ -94,11 +94,11 @@ class RoomHandler(object):
         return r
 
 
-    def send_join_msg(self, client_id):
+    def send_join_msg(self, client_id,room):
         """Send a message of type 'join' to all users connected to the room where client_id is connected."""
         nick = self.client_info[client_id]['nick']
         r_cwsconns = self.roomate_cwsconns(client_id)
-        msg = {"msgtype": "join", "username": nick, "payload": " joined the chat room."}
+        msg = {"msgtype": "join", "username": nick, "room":room,"payload": " joined the chat room."}
         pmessage = json.dumps(msg)
         for conn in r_cwsconns:
             conn.write_message(pmessage)
@@ -165,6 +165,6 @@ if __name__ == "__main__":
         (r"/ws/(.*)", ClientWSConnection, {'room_handler': rh})],
         static_path=os.path.join(os.path.dirname(__file__), "static")
     )
-    app.listen(8888)
+    app.listen(9999)
     tornado.ioloop.IOLoop.instance().start()
 
