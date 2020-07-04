@@ -1,0 +1,58 @@
+//get button reference
+var myBtn = document.getElementById('myBtn');
+
+//add click function
+myBtn.addEventListener('click', function(event) {
+  //addField();
+    textButtonMaker(E('mom').value, E('btns'), buttonClickHandler);
+      //bfoo( E('btns'), buttonClickHandler);
+      });
+
+//it's more efficient to get the form reference outside of the function, rather than getting it each time
+var form = document.getElementById('myForm');
+
+function addField() {
+  var input = document.createElement('input');
+    input.value = 'NumbersOnly';
+      input.type = 'text'
+        form.insertBefore(input, myBtn);
+	  //form.appendChild(input);
+	  }
+
+C = function(tag){
+  return document.createElement(tag);
+  }
+  E = function(id){
+    return document.getElementById(id);
+    }
+    buttonMaker = function(bname, appendTo, clickFunc){
+         b = C('input'); b.type = 'button'; b.value = bname; b.id=bname;
+	     b.addEventListener('click', clickFunc);
+	         appendTo.appendChild(b);
+		   return appendTo;
+		   }
+		   textButtonMaker = function(bname,appendTo){
+		       t = C('input'); t.type = 'text'; t.value='type_here';
+		           t.id = bname+'_input';
+			       b = C('input'); b.type = 'button'; b.value = bname;
+			           tbch = function() {
+				         test.innerHTML += E(bname+'_input').value + '-from' + bname
+					     }
+					         b.addEventListener('click', tbch);
+						     appendTo.appendChild(t)
+						         appendTo.appendChild(b);
+							   return appendTo;
+							   }
+
+bnameMaker = function(bname) {
+  return function (aTo,cF) {
+      buttonMaker(bname,aTo,cF)
+        }
+	}
+	bfoo = bnameMaker('bobmom')
+
+
+var test = E('foo');
+function buttonClickHandler(){
+  test.innerHTML += this.value;
+  }
