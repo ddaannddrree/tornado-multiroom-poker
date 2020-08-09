@@ -11,8 +11,24 @@
         <p id="room">"Room: oh hai"</p>
         <p id="player">"Player:"</p>
 
-	
-	<p id="stack">"Stack: 0"</p>
+	<hr>
+	<h1> test section </h1>
+	<p><button onclick="test_initial()" id="t_init">Initial</button>
+	<button onclick="test_fivecarddraw()" id="t_five">Five</button>
+	<button onclick="test_midbet()" id="t_midbet">mid bet</button>
+	<button onclick="test_357show3()" id="t_357show">357 show</button>
+	<button onclick="test_misc()" id="t_misc">misc</button>
+	<button onclick="test_misc2()" id="t_misc2">misc2</button>
+	<button onclick="test_misc3()" id="t_misc3">misc3</button>
+	<button onclick="test_misc4()" id="t_misc4">misc4</button></p>
+
+	<hr>
+ 	
+	<div id="accounting"> 
+	    accounting<br>
+	    <form class="abuttons" id="abuttons" > </form>
+	</div>
+<!---	<p id="stack">"Stack: 0"</p>
 	<p id="buyin"><input type="text" id="rebuy" value="2000">
 	  <button onclick="rebuy()" id="rebuybutton">Buy In</button>  <span id="demo"></span></p>
 	<p><button onclick="pickGame()" id="dcbutton" disabled=true>Pick a Game</button></p>
@@ -20,20 +36,37 @@
 	  <div id="dealerchoice">
 	    </div>
 	</p>
-
-	<p><button onclick="startGame()" id="startbutton" disabled=true>Start Game</button></p>
-
+	-->
+	<hr>
 	<p>
-	<div id="game_status"> </div>
+	    <div id="admin"> 
+	admin<br>
+		<form class="buttons" id="buttons" > </form>
+		<div id="game_status"> </div>
+	    </div>
+        </p>
+	<hr>
+	<p>
+	cards<br>
+	<div class="box" id="mycards" border = "thick solid #0000FF" display="None">
+<!---	<p><button onclick="startGame()" id="startbutton" disabled=true>Start Game</button></p> -->
+
+<!---	<p>
 	<div class="box" id="mycards" border = "thick solid #0000FF">
 <!--	  <span>         <img class='card movable'  draggable="true" src='/static/cards/QS.svg'> </span>
 	  <span>         <img class='card movable'  draggable="true" src='/static/cards/KH.svg'> </span>
 	  <span>         <img class='card movable'  draggable="true"  src='/static/cards/9D.svg'> </span> -->
 	</div>
-	<form class="buttons" id="buttons" >
-	  </form>
-       </p>
-	
+	<div class="box" id="mycards2" border = "thick solid #0000FF" display="None">
+	</div>
+	<div class="box" id="mycards3" border = "thick solid #0000FF"  display="None">
+	</div>
+	</p>
+	<hr>
+	player info<br>
+	<p><div id="players"> </div></p>
+	<hr>
+
 	<br>
 	<br>
 	<div id="chat">
@@ -73,9 +106,9 @@
 	   document.getElementById("dcbutton").disabled= false;	  
 	  }
 	  document.getElementById("demo").innerHTML = text;
-	  }
+	}
 	  
-	  function createCard(value, suit) {
+	function createCard(value, suit) {
 	    var node = document.createElement("SPAN");                 // Create a <SPAN> node
 	    var img = document.createElement("IMG");
 	    img.src = '/static/cards/' + value + suit +'.svg';
@@ -84,7 +117,7 @@
 	    node.appendChild(img);
 	    return node;
 	    
-	  }
+	}
      C = function(tag){
 	 return document.createElement(tag);
      }
@@ -119,9 +152,9 @@
 	 b.addEventListener('click', tbch);
 	 b.disabled = bdis;
 	 tstr = JSON.stringify(t)
-         console.log("in buttonMaker: t is "+tstr);
+         console.log("in tbuttonMaker: t is "+tstr);
 	 bstr = JSON.stringify(b)
-         console.log("in buttonMaker: b is "+bstr);
+         console.log("in tbuttonMaker: b is "+bstr);
 
 	 
 	 appendTo.appendChild(t)
@@ -277,7 +310,16 @@
 		}
 
 	    }
-	    
+     function handleAccountingMsg(msg) {
+	 console.log("In handleAccountingMsg");
+	 ptr = E("accounting")
+	 astr = "Stack: " + msg.stack + ", Active: " + msg.active_stack + ", total in: " + msg.total;
+	 if (msg.butt_active > 0) {
+	     
+	 }
+     }
+
+     
             function receive_message(wsevent) {
                 console.log("received message: "+wsevent.data )
                 msg_obj = $.parseJSON(wsevent.data);

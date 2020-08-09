@@ -4,15 +4,27 @@ import json
 import tornado.ioloop
 import tornado.web
 from tornado import websocket
+import poker
 
 
 class RoomHandler(object):
     """Store data about connections, rooms, which users are in which rooms, etc."""
     def __init__(self):
         self.client_info = {}  # for each client id we'll store  {'wsconn': wsconn, 'room':room, 'nick':nick}
-        self.room_info = {}  # dict  to store a list of  {'cid':cid, 'nick':nick , 'wsconn': wsconn} for each room
+        self.room_info = {}  # dict  to store a list of  {'cid':cid, 'nick':nick , 'wsconn': wsconn} for each room    [probably just add the poker_info here]
         self.roomates = {}  # store a set for each room, each contains the connections of the clients in the room.
 
+    def getRoom(self,client_id):
+        return(self.client_info[client_id]['room'])
+
+    def getClientRoomInfo(self,client_id,room):
+        cis = self.room_info[room]
+        rci = [c for c in cis if c['cid'] == client_id]
+        return(rci[0])
+
+    def makeButton(self,name,textf = False,disabled=False):
+        return {'bname':name, 'has_text':textf,'disabled':disabled}
+    
     def add_roomnick(self, room, nick):
         """Add nick to room. Return generated clientID"""
         # meant to be called from the main handler (page where somebody indicates a nickname and a room to join)
@@ -33,11 +45,58 @@ class RoomHandler(object):
         self.room_info[room].append({'cid': cid, 'nick': nn})
         return cid
 
+    
+    def handlePokerMsg(self, msg,client_id, room):
+        """handles poker messages; for now, it just checks the gameSelected and if 357 sends a 357 button set, otw a 5cd button set, plus cards"""
+        # needs to, for now, switch on 357, seven, or five
+        # send back cards, admin (stattus msg), and buttons
+        # cards just drawn from a deck
+        # will need to have logic for who bets first, etc.
+        if (msg['subtype'] == 'dealerchoice'):
+            adeck = poker.getDeck()
+            cr_info = self.getClientRoomInfo(client_id,room)
+            if (msg['gameSelected'] in ["357_25", "357_5","357_5_nw"]):
+                ncards = 3
+                buttons = [ self.makeButton(x) for x in ['drop','hold']]
+                status = 'Game is set to ' + msg['gameSelected'] + ' and dealer is ' + cr_info['nick']
+            elif (msg['gameSelected'] in ['5cp','5cd']):
+                ncards = 5
+                buttons = [ self.makeButton(x) for x in ['fold','check','call']]
+                buttons.append( self.makeButton('raise',True))
+                status = 'Game is set to ' + msg['gameSelected'] + ' and dealer is ' + cr_info['nick']
+            elif (msg['gameSelected'] in ['7cp']):
+                ncards = 7
+                buttons = [ self.makeButton(x) for x in ['fold','check','call']]
+                buttons.append( self.makeButton('raise',True))
+                status = 'Game is set to ' + msg['gameSelected'] + ' and dealer is ' + cr_info['nick']
+            else:
+                print('game selected is not one we know: ' + msg.gameSelected)
+            # Now, loop over the players and send them their specific messages
+            #here
+            hands = poker.deal(adeck,len(self.room_info[room]),ncards)
+            
+            for idx,ci in enumerate(self.room_info[room]):
+                cmsg = {'msgtype':'poker','subtype':'cards','cards':hands[idx]}
+                print('cmsg is ' + str(cmsg))
+                smsg = {'msgtype':'poker','subtype':'admin','game_status':status}
+                print('smsg is ' + str(smsg))
+                bmsg = {'msgtype':'poker','subtype':'buttons','buttons':buttons}
+                print('bmsg is ' + str(bmsg))
+                conn = ci['wsconn']
+                conn.write_message(cmsg)
+                conn.write_message(smsg)
+                conn.write_message(bmsg)
+        else:
+            print('Not yet implemented: ' + msg.subtype)
+
+    
     def add_client_wsconn(self, client_id, conn):
         """Store the websocket connection corresponding to an existing client."""
         self.client_info[client_id]['wsconn'] = conn
         cid_room = self.client_info[client_id]['room']
 
+        print('in add_client_wsconn, client id is ' + str(client_id) + 'conn is ' + str(conn))
+        
         if cid_room in self.roomates:
             self.roomates[cid_room].add(conn)
         else:
@@ -57,6 +116,7 @@ class RoomHandler(object):
         """Remove all client information from the room handler."""
         cid_room = self.client_info[client_id]['room']
         nick = self.client_info[client_id]['nick']
+        print('in remove_clisent for ' + client_id)
          # first, remove the client connection from the corresponding room in self.roomates
         client_conn = self.client_info[client_id]['wsconn']
         if client_conn in self.roomates[cid_room]:
@@ -100,6 +160,8 @@ class RoomHandler(object):
         r_cwsconns = self.roomate_cwsconns(client_id)
         msg = {"msgtype": "join", "username": nick, "room":room,"payload": " joined the chat room."}
         pmessage = json.dumps(msg)
+        print('sending msg, in send_join_msg:')
+        print(msg)
         for conn in r_cwsconns:
             conn.write_message(pmessage)
 
@@ -108,6 +170,8 @@ class RoomHandler(object):
         """Send a message of type 'nick_list' (contains a list of nicknames) to all the specified connections."""
         msg = {"msgtype": "nick_list", "payload": nick_list}
         pmessage = json.dumps(msg)
+        print('sending msg, in send_nicks_msg:')
+        print(msg)
         for c in conns:
             c.write_message(pmessage)
 
@@ -116,6 +180,8 @@ class RoomHandler(object):
         """Send a message of type 'leave', specifying the nickname that is leaving, to all the specified connections."""
         msg = {"msgtype": "leave", "username": nick, "payload": " left the chat room."}
         pmessage = json.dumps(msg)
+        print('sending msg, in send_leave_msg:')
+        print(msg)
         for conn in rconns:
             conn.write_message(pmessage)
 
@@ -133,8 +199,11 @@ class MainHandler(tornado.web.RequestHandler):
             nick = self.get_argument("nick")
             cid = self.__rh.add_roomnick(room, nick)
             self.render("templates/chat.html", clientid=cid)
+            print('rendered chat')
         except tornado.web.MissingArgumentError:
             self.render("templates/main.html")
+            print('rendered main')
+
 
 
 class ClientWSConnection(websocket.WebSocketHandler):
@@ -144,16 +213,25 @@ class ClientWSConnection(websocket.WebSocketHandler):
         self.__rh = room_handler
 
     def open(self, client_id):
+        print('in clientWSConnection open')
         self.__clientID = client_id
         self.__rh.add_client_wsconn(client_id, self)
 
     def on_message(self, message):
         msg = json.loads(message)
+        print('in on_message')
+        print('in CWSC on_message:' + str(msg))
         msg['username'] = self.__rh.client_info[self.__clientID]['nick']
         pmessage = json.dumps(msg)
-        rconns = self.__rh.roomate_cwsconns(self.__clientID)
-        for conn in rconns:
-            conn.write_message(pmessage)
+        if (msg['msgtype'] == "poker"):
+            print('cient id is ' + self.__clientID)
+            self.__rh.handlePokerMsg(msg,self.__clientID,
+                                     self.__rh.getRoom(self.__clientID));
+        else:
+            rconns = self.__rh.roomate_cwsconns(self.__clientID)
+            for conn in rconns:
+                conn.write_message(pmessage)
+                
 
     def on_close(self):
         self.__rh.remove_client(self.__clientID)
